@@ -1,0 +1,68 @@
+# kind-config.yaml
+# Windows-compatible kind cluster configuration for KubeZen development
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kubezen-dev
+
+nodes:
+  # Control Plane Node
+  - role: control-plane
+    image: kindest/node:v1.30.0
+    extraPortMappings:
+      # NodePort services için port mapping
+      - containerPort: 30000
+        hostPort: 30000
+        protocol: TCP
+      - containerPort: 30001
+        hostPort: 30001
+        protocol: TCP
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "env=dev,region=eu"
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            enable-admission-plugins: "NamespaceLifecycle,LimitRanger,ServiceAccount"
+
+  # Worker Node 1 - Production environment label
+  - role: worker
+    image: kindest/node:v1.30.0
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "env=prod,region=eu"
+
+  # Worker Node 2 - Dev environment label
+  - role: worker
+    image: kindest/node:v1.30.0
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "env=dev,region=us"
+
+  # Worker Node 3 - Staging with taint for dedicated workloads
+  - role: worker
+    image: kindest/node:v1.30.0
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "env=staging,region=eu"
+          taints:
+            - key: "dedicated"
+              value: "db"
+              effect: "NoSchedule"
+
+networking:
+  disableDefaultCNI: false
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"

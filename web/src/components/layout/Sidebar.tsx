@@ -22,13 +22,13 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-card">
-      <div className="flex items-center gap-2 border-b px-6 py-4">
+      <div className="flex h-14 items-center gap-2 border-b px-6">
         <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Boxes className="h-5 w-5" aria-hidden />
         </div>
         <div>
           <div className="text-sm font-semibold leading-tight">KubeZen</div>
-          <div className="text-xs text-muted-foreground">Phase 1 · MVP</div>
+          <div className="text-xs text-muted-foreground">v1.0.0</div>
         </div>
       </div>
 
@@ -54,4 +54,3 @@ export function Sidebar() {
     </aside>
   )
 }
-

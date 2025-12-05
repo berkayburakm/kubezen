@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -42,12 +45,44 @@ func NewOIDCClient(ctx context.Context, cfg config.AuthConfig) (*OIDCClient, err
 	}, nil
 }
 
-func (c *OIDCClient) AuthCodeURL(state string) string {
-	return c.config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+// generateCodeVerifier creates a random code verifier for PKCE
+func generateCodeVerifier() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func (c *OIDCClient) Exchange(ctx context.Context, code string) (OIDCTokenPayload, error) {
-	token, err := c.config.Exchange(ctx, code)
+// generateCodeChallenge creates a S256 code challenge from verifier
+func generateCodeChallenge(verifier string) string {
+	h := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(h[:])
+}
+
+// AuthCodeURL returns the authorization URL with PKCE parameters
+// Returns the URL and the code verifier (which must be saved for the callback)
+func (c *OIDCClient) AuthCodeURL(state string) (string, string, error) {
+	codeVerifier, err := generateCodeVerifier()
+	if err != nil {
+		return "", "", fmt.Errorf("generate code verifier: %w", err)
+	}
+	codeChallenge := generateCodeChallenge(codeVerifier)
+
+	url := c.config.AuthCodeURL(state,
+		oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
+
+	return url, codeVerifier, nil
+}
+
+// Exchange trades the authorization code for tokens, using the code verifier for PKCE
+func (c *OIDCClient) Exchange(ctx context.Context, code, codeVerifier string) (OIDCTokenPayload, error) {
+	token, err := c.config.Exchange(ctx, code,
+		oauth2.SetAuthURLParam("code_verifier", codeVerifier),
+	)
 	if err != nil {
 		return OIDCTokenPayload{}, fmt.Errorf("exchange code: %w", err)
 	}
@@ -77,3 +112,4 @@ func (c *OIDCClient) Exchange(ctx context.Context, code string) (OIDCTokenPayloa
 		Name:         claims.Name,
 	}, nil
 }
+

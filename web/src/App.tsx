@@ -12,12 +12,14 @@ import NodesPage from '@/pages/NodesPage'
 import OidcCallbackPage from '@/pages/OidcCallbackPage'
 import PodDetailPage from '@/pages/PodDetailPage'
 import PodsPage from '@/pages/PodsPage'
+import SetupPage from '@/pages/SetupPage'
 import { useAuthStore } from '@/stores/auth-store'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/setup" element={<SetupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<OidcCallbackPage />} />
         <Route

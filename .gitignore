@@ -1,4 +1,4 @@
-# Node/pnpm
+# Node
 /node_modules
 web/node_modules
 web/dist
@@ -6,7 +6,6 @@ web/.vite
 web/.turbo
 web/.eslintcache
 web/coverage
-pnpm-lock.yaml
 
 # Go
 /bin
@@ -16,9 +15,15 @@ pnpm-lock.yaml
 *.test
 *.log
 
+# Data (SQLite database)
+/data
+
+# Docker
+docker/keycloak/data
+
 # Env & local config
 .env
-.env.*
+.env.local
 .DS_Store
 .vscode
 .idea

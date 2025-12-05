@@ -32,7 +32,13 @@ func OIDCStart(manager *auth.Manager, client *auth.OIDCClient) gin.HandlerFunc {
 			return
 		}
 		state := manager.NewState()
-		url := client.AuthCodeURL(state)
+		url, codeVerifier, err := client.AuthCodeURL(state)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, err)
+			return
+		}
+		// Store codeVerifier with state for PKCE flow
+		manager.StoreCodeVerifier(state, codeVerifier)
 		respondOK(c, gin.H{"url": url, "state": state})
 	}
 }
@@ -53,7 +59,9 @@ func OIDCCallback(manager *auth.Manager, client *auth.OIDCClient) gin.HandlerFun
 			respondError(c, http.StatusBadRequest, ErrBadRequest)
 			return
 		}
-		payload, err := client.Exchange(c.Request.Context(), code)
+		// Retrieve codeVerifier for PKCE
+		codeVerifier := manager.GetCodeVerifier(state)
+		payload, err := client.Exchange(c.Request.Context(), code, codeVerifier)
 		if err != nil {
 			respondError(c, http.StatusBadRequest, err)
 			return

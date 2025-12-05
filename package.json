@@ -7,15 +7,14 @@
   "packageManager": "pnpm@10.24.0",
   "scripts": {
     "dev": "pnpm -C web dev",
-    "dev:backend": "KZ_AUTH_DEV_BYPASS=false KZ_ALLOWED_ORIGINS=http://localhost:5173 KZ_KUBECONFIG=${HOME}/.kube/config KZ_KUBE_CONTEXT=kind-kubezen KZ_AUTH_OIDC_ISSUER=http://localhost:8081/realms/kubezen KZ_AUTH_OIDC_CLIENT_ID=kubezen-ui KZ_AUTH_OIDC_CLIENT_SECRET=z2WCvY1g0ydE1kkq8cASAXSgL2xu5jpk KZ_AUTH_OIDC_REDIRECT_URL=http://localhost:5173/auth/callback KZ_AUTH_OIDC_SCOPES=openid,profile,email go run ./cmd/server",
-    "dev:backend:bypass": "KZ_AUTH_DEV_BYPASS=true KZ_ALLOWED_ORIGINS=http://localhost:5173 KZ_KUBECONFIG=${HOME}/.kube/config KZ_KUBE_CONTEXT=kind-kubezen KZ_AUTH_OIDC_ISSUER=http://localhost:8081/realms/kubezen KZ_AUTH_OIDC_CLIENT_ID=kubezen-ui KZ_AUTH_OIDC_CLIENT_SECRET= KZ_AUTH_OIDC_REDIRECT_URL=http://localhost:5173/auth/callback KZ_AUTH_OIDC_SCOPES=openid,profile,email go run ./cmd/server",
-    "dev:frontend": "cd web && VITE_API_BASE=http://localhost:8080/api pnpm dev",
-    "dev:all": "sh -c \"(KZ_AUTH_DEV_BYPASS=false KZ_ALLOWED_ORIGINS=http://localhost:5173 KZ_KUBECONFIG=${HOME}/.kube/config KZ_KUBE_CONTEXT=kind-kubezen KZ_AUTH_OIDC_ISSUER=http://localhost:8081/realms/kubezen KZ_AUTH_OIDC_CLIENT_ID=kubezen-ui KZ_AUTH_OIDC_CLIENT_SECRET= KZ_AUTH_OIDC_REDIRECT_URL=http://localhost:5173/auth/callback KZ_AUTH_OIDC_SCOPES=openid,profile,email go run ./cmd/server) & (cd web && VITE_API_BASE=http://localhost:8080/api pnpm dev)\"",
-    "dev:all:bypass": "sh -c \"(KZ_AUTH_DEV_BYPASS=true KZ_ALLOWED_ORIGINS=http://localhost:5173 KZ_KUBECONFIG=${HOME}/.kube/config KZ_KUBE_CONTEXT=kind-kubezen KZ_AUTH_OIDC_ISSUER=http://localhost:8081/realms/kubezen KZ_AUTH_OIDC_CLIENT_ID=kubezen-ui KZ_AUTH_OIDC_CLIENT_SECRET= KZ_AUTH_OIDC_REDIRECT_URL=http://localhost:5173/auth/callback KZ_AUTH_OIDC_SCOPES=openid,profile,email go run ./cmd/server) & (cd web && VITE_API_BASE=http://localhost:8080/api pnpm dev)\"",
+    "dev:backend": "go run ./cmd/server",
+    "dev:frontend": "pnpm -C web dev",
     "build": "pnpm -C web build",
     "lint": "pnpm -C web lint",
     "typecheck": "pnpm -C web typecheck",
-    "format": "pnpm -C web format"
+    "format": "pnpm -C web format",
+    "docker:keycloak:build": "docker build -t kubezen-keycloak:dev ./docker/keycloak",
+    "docker:keycloak": "docker run -d --rm -p 8081:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin kubezen-keycloak:dev"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6"

@@ -38,6 +38,7 @@ type AuthConfig struct {
 	SessionTTL       time.Duration
 	SessionSecure    bool
 	SessionDomain    string
+	DefaultContext   string // Kube context to show in UI for OIDC sessions
 	OIDCIssuerURL    string
 	OIDCClientID     string
 	OIDCClientSecret string
@@ -56,7 +57,7 @@ func Load() Config {
 			AllowedOrigins: splitCSV(getEnv("KZ_ALLOWED_ORIGINS", "*")),
 		},
 		Kube: KubeConfig{
-			KubeconfigPath:        getEnv("KZ_KUBECONFIG", os.Getenv("KUBECONFIG")),
+			KubeconfigPath:        expandTilde(getEnv("KZ_KUBECONFIG", os.Getenv("KUBECONFIG"))),
 			Context:               getEnv("KZ_KUBE_CONTEXT", ""),
 			QPS:                   getFloat32("KZ_KUBE_QPS", 20),
 			Burst:                 getInt("KZ_KUBE_BURST", 40),
@@ -69,6 +70,7 @@ func Load() Config {
 			SessionTTL:       getDuration("KZ_AUTH_SESSION_TTL", 24*time.Hour),
 			SessionSecure:    getBool("KZ_AUTH_SESSION_SECURE", true),
 			SessionDomain:    getEnv("KZ_AUTH_SESSION_DOMAIN", ""),
+			DefaultContext:   getEnv("KZ_KUBE_CONTEXT", "default"),
 			OIDCIssuerURL:    getEnv("KZ_AUTH_OIDC_ISSUER", ""),
 			OIDCClientID:     getEnv("KZ_AUTH_OIDC_CLIENT_ID", ""),
 			OIDCClientSecret: getEnv("KZ_AUTH_OIDC_CLIENT_SECRET", ""),
@@ -136,3 +138,19 @@ func splitCSV(value string) []string {
 	}
 	return result
 }
+
+// expandTilde expands ~ to the user's home directory (cross-platform)
+func expandTilde(path string) string {
+	if path == "" {
+		return path
+	}
+	if strings.HasPrefix(path, "~/") || path == "~" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return path
+		}
+		return strings.Replace(path, "~", home, 1)
+	}
+	return path
+}
+

@@ -56,7 +56,8 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return handleResponse<T>(response)
 }
 
-export const apiGet = <T>(path: string, init?: RequestInit) => apiRequest<T>(path, { ...init, method: 'GET' })
+export const apiGet = <T>(path: string, init?: RequestInit) =>
+  apiRequest<T>(path, { ...init, method: 'GET' })
 export const apiPost = <T>(path: string, body?: unknown, init?: RequestInit) =>
   apiRequest<T>(path, { ...init, method: 'POST', body: body ? JSON.stringify(body) : undefined })
 export const apiDelete = <T>(path: string, init?: RequestInit) =>
@@ -113,12 +114,39 @@ export const deleteNamespace = (name: string) => apiDelete<void>(`/v1/namespaces
 export const fetchEvents = (namespace?: string) =>
   apiGet<ListResponse<EventSummary>>(`/v1/events${toQueryString({ namespace })}`)
 
+// Contexts API
+export interface ContextInfo {
+  name: string
+  cluster: string
+  user: string
+  namespace?: string
+  isCurrent: boolean
+}
+
+export interface ContextsResponse {
+  contexts: ContextInfo[]
+  currentContext: string
+}
+
+export const fetchContexts = () => apiGet<ContextsResponse>('/v1/contexts')
+
 // Auth endpoints
+export interface AuthStatus {
+  needsSetup: boolean
+  authMethods: ('local' | 'oidc')[]
+}
+
+export const fetchAuthStatus = () => apiGet<AuthStatus>('/auth/status')
+export const setupAdmin = (username: string, password: string) =>
+  apiPost<SessionInfo>('/auth/setup', { username, password })
+export const localLogin = (username: string, password: string) =>
+  apiPost<SessionInfo>('/auth/login', { username, password })
 export const fetchSession = () => apiGet<SessionInfo>('/auth/session')
 export const startOIDC = () => apiGet<{ url: string; state: string }>('/auth/oidc/start')
 export const completeOIDC = (code: string, state: string) =>
-  apiGet<SessionInfo>(`/auth/oidc/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`)
+  apiGet<SessionInfo>(
+    `/auth/oidc/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+  )
 export const logout = () => apiPost<void>('/auth/logout')
 export const loginWithKubeconfig = (kubeconfig: string, context?: string, user?: string) =>
   apiPost<SessionInfo>('/auth/kubeconfig', { kubeconfig, context, user })
-

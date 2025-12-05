@@ -18,6 +18,7 @@ type SessionSource string
 const (
 	SourceOIDC       SessionSource = "oidc"
 	SourceKubeconfig SessionSource = "kubeconfig"
+	SourceLocal      SessionSource = "local"
 )
 
 type Session struct {
@@ -35,17 +36,19 @@ type Session struct {
 
 // Manager holds in-memory sessions and OIDC state for CSRF protection.
 type Manager struct {
-	cfg        config.AuthConfig
-	mu         sync.RWMutex
-	sessions   map[string]Session
-	stateStore map[string]time.Time
+	cfg               config.AuthConfig
+	mu                sync.RWMutex
+	sessions          map[string]Session
+	stateStore        map[string]time.Time
+	codeVerifierStore map[string]string // state -> codeVerifier for PKCE
 }
 
 func NewManager(cfg config.AuthConfig) *Manager {
 	return &Manager{
-		cfg:        cfg,
-		sessions:   make(map[string]Session),
-		stateStore: make(map[string]time.Time),
+		cfg:               cfg,
+		sessions:          make(map[string]Session),
+		stateStore:        make(map[string]time.Time),
+		codeVerifierStore: make(map[string]string),
 	}
 }
 
@@ -59,6 +62,7 @@ func (m *Manager) NewSessionFromOIDC(subject string, token OIDCTokenPayload) Ses
 		RefreshToken: token.RefreshToken,
 		TokenType:    token.TokenType,
 		ExpiresAt:    token.Expiry,
+		Context:      m.cfg.DefaultContext, // Use backend's kube context
 		CreatedAt:    time.Now(),
 	}
 	m.mu.Lock()
@@ -78,6 +82,22 @@ func (m *Manager) NewSessionFromKubeconfig(subject, rawConfig, context string) S
 		ExpiresAt:   time.Now().Add(m.cfg.SessionTTL),
 		CreatedAt:   time.Now(),
 		AccessToken: "",
+	}
+	m.mu.Lock()
+	m.sessions[id] = s
+	m.mu.Unlock()
+	return s
+}
+
+func (m *Manager) NewSessionFromLocal(username, role, context string) Session {
+	id := newID()
+	s := Session{
+		ID:        id,
+		Source:    SourceLocal,
+		Subject:   username,
+		Context:   context,
+		ExpiresAt: time.Now().Add(m.cfg.SessionTTL),
+		CreatedAt: time.Now(),
 	}
 	m.mu.Lock()
 	m.sessions[id] = s
@@ -153,6 +173,22 @@ func (m *Manager) ValidateState(state string) bool {
 	}
 	delete(m.stateStore, state)
 	return time.Now().Before(expiry)
+}
+
+// StoreCodeVerifier saves the PKCE code verifier for a given state
+func (m *Manager) StoreCodeVerifier(state, verifier string) {
+	m.mu.Lock()
+	m.codeVerifierStore[state] = verifier
+	m.mu.Unlock()
+}
+
+// GetCodeVerifier retrieves and removes the PKCE code verifier for a given state
+func (m *Manager) GetCodeVerifier(state string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	verifier := m.codeVerifierStore[state]
+	delete(m.codeVerifierStore, state)
+	return verifier
 }
 
 func (m *Manager) cookieName() string {

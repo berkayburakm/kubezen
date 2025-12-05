@@ -10,11 +10,12 @@ import (
 	"kubezen/internal/auth"
 	"kubezen/internal/config"
 	"kubezen/internal/k8s"
+	"kubezen/internal/store"
 	"kubezen/internal/version"
 )
 
 // NewRouter wires all HTTP routes and middleware.
-func NewRouter(cfg config.Config, svc *k8s.Service, authManager *auth.Manager, oidcClient *auth.OIDCClient) *gin.Engine {
+func NewRouter(cfg config.Config, svc *k8s.Service, userStore *store.Store, authManager *auth.Manager, oidcClient *auth.OIDCClient) *gin.Engine {
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -32,8 +33,14 @@ func NewRouter(cfg config.Config, svc *k8s.Service, authManager *auth.Manager, o
 		})
 	})
 
+	oidcEnabled := oidcClient != nil
+	defaultContext := cfg.Kube.Context
+
 	apiGroup := router.Group("/api")
 	authGroup := apiGroup.Group("/auth")
+	authGroup.GET("/status", handlers.AuthStatus(userStore, oidcEnabled))
+	authGroup.POST("/setup", handlers.InitialSetup(userStore, authManager, defaultContext))
+	authGroup.POST("/login", handlers.LocalLogin(userStore, authManager, defaultContext))
 	authGroup.POST("/kubeconfig", handlers.KubeconfigLogin(authManager))
 	authGroup.GET("/oidc/start", handlers.OIDCStart(authManager, oidcClient))
 	authGroup.GET("/oidc/callback", handlers.OIDCCallback(authManager, oidcClient))
@@ -46,6 +53,7 @@ func NewRouter(cfg config.Config, svc *k8s.Service, authManager *auth.Manager, o
 	})
 
 	v1 := apiGroup.Group("/v1")
+	v1.GET("/contexts", handlers.ListContexts(cfg.Kube.KubeconfigPath, cfg.Kube.Context))
 	v1.GET("/pods", handlers.ListPods(svc))
 	v1.GET("/pods/:namespace/:name", handlers.GetPod(svc))
 	v1.GET("/nodes", handlers.ListNodes(svc))
@@ -59,4 +67,5 @@ func NewRouter(cfg config.Config, svc *k8s.Service, authManager *auth.Manager, o
 
 	return router
 }
+
 
