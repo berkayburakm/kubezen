@@ -1,0 +1,23 @@
+replicaCount: 1
+
+image:
+  repository: kubezen/server
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+env:
+  KZ_ADDRESS: ":8080"
+  KZ_ALLOWED_ORIGINS: "*"
+  KZ_AUTH_DEV_BYPASS: "true"
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,25 @@
+# Node/pnpm
+/node_modules
+web/node_modules
+web/dist
+web/.vite
+web/.turbo
+web/.eslintcache
+web/coverage
+pnpm-lock.yaml
+
+# Go
+/bin
+/tmp
+/coverage
+*.out
+*.test
+*.log
+
+# Env & local config
+.env
+.env.*
+.DS_Store
+.vscode
+.idea
+.cursor

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubezen.fullname" . }}
+  labels:
+    app: {{ include "kubezen.name" . }}
+    chart: {{ include "kubezen.chart" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "kubezen.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "kubezen.name" . }}
+    spec:
+      containers:
+        - name: kubezen
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: KZ_ADDRESS
+              value: {{ .Values.env.KZ_ADDRESS | quote }}
+            - name: KZ_ALLOWED_ORIGINS
+              value: {{ .Values.env.KZ_ALLOWED_ORIGINS | quote }}
+            - name: KZ_AUTH_DEV_BYPASS
+              value: {{ .Values.env.KZ_AUTH_DEV_BYPASS | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

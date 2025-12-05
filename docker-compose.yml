@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  kubezen-server:
+    build: .
+    image: kubezen/server:dev
+    ports:
+      - "8080:8080"
+    environment:
+      KZ_ADDRESS: ":8080"
+      KZ_AUTH_OIDC_ISSUER: "http://localhost:8081/realms/kubezen"
+      KZ_AUTH_OIDC_CLIENT_ID: "kubezen-ui"
+      KZ_AUTH_OIDC_CLIENT_SECRET: "   # public client ise boş bırakın"
+      KZ_AUTH_OIDC_REDIRECT_URL: "http://localhost:5173/auth/callback"
+      KZ_AUTH_OIDC_SCOPES: "openid,profile,email"
+      KZ_ALLOWED_ORIGINS: "http://localhost:5173"
+      KZ_KUBECONFIG: "$HOME/.kube/config"
+      KZ_KUBE_CONTEXT: "kind-kubezen"
+    volumes:
+      - "${HOME}/.kube:/root/.kube:ro"
+    restart: unless-stopped
